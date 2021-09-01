@@ -1,0 +1,51 @@
+﻿--LISTANDO TODOS OS JOBS DE DESFAZIMENTO AUTOMATICO DE VENDA, QUE OCORRERAM ENTRE 14H E 15H, DO DIA 01/05/2019
+SELECT LJB.CD_LJB AS ID_EXECUCAO, JOB.NM_JOB AS NOME_JOB, DMN.NM_VLR_DMN AS SITUACAO, 
+       TO_CHAR(LJB.DT_INI_LJB, 'DD/MM/YYYY HH24:MI:SS') AS DATA_INICIO, TO_CHAR(LJB.DT_FIM_LJB, 'DD/MM/YYYY HH24:MI:SS') AS DATA_FIM, LJB.DS_ERR_LJB AS ERRO
+FROM SC_JOB.TBL_LJB LJB
+     INNER JOIN SC_JOB.TBL_JOB JOB ON LJB.CD_JOB = JOB.CD_JOB
+     LEFT JOIN SC_CAD.TBL_DMN DMN ON LJB.ST_LJB = DMN.VL_CMP_DMN AND DMN.NM_CMP_DMN = 'ST_LJB'
+WHERE LJB.CD_JOB = 119 
+  AND DT_INI_LJB >= '2019-04-12 17:00:00' 
+  AND DT_INI_LJB < '2019-04-12 19:00:00' 
+ORDER BY DATA_INICIO;
+
+--LISTANDO TODAS AS MENSAGENS TROCADAS COM A FILIAL 020 DO SUPER COMETA, QUE OCORRERAM ENTRE 14H E 15H, DO DIA 01/05/2019
+SELECT CD_MSG as codigo_mensagem, to_char(DT_MSG, 'dd/mm/yyyy hh24:mi:ss') as data_inclusao, COALESCE(D.NM_VLR_DMN, BIT001) AS TIPO, COALESCE(D3.NM_VLR_DMN, BIT003) AS PROCESSAMENTO, ROUND(BIT004::NUMERIC / 100, 2) AS VALOR, 
+       TO_timestamp(extract (year from dt_msg)::varchar || BIT007, 'yyyymmddHH24miss') AS DATA_HORA, BIT011 AS NSU_ORIGEM, 
+       BIT012 AS HORA, BIT013, CASE BIT022 WHEN '021' THEN 'MAGNETICO' WHEN '011' THEN 'DIGITADO' ELSE BIT022 END AS MODO_ENTRADA, COALESCE(BIT035, BIT002) AS CARTAO, BIT038, 
+       CASE WHEN BIT039 = '00' THEN 'SUCESSO' ELSE 'RECUSADA MOTIVO: ' || BIT039 END AS RETORNO, BIT040, BIT041 AS TERMINAL, 
+       BIT042 AS ESTABELECIMENTO, BIT048, BIT049, BIT052 AS SENHA, BIT061, BIT062 AS CUPOM, BIT067 AS NUMERO_PARCELA, BIT070, BIT090, BIT127, 
+       CASE WHEN CD_PAI_MSG IS NULL THEN 'REQUISICAO' ELSE 'RESPOSTA' END AS REQUISICAO_RESPOSTA,  CD_PAI_MSG AS CODIGO_MENSAGEM_REQUISICAO, CASE WHEN BIT032::NUMERIC = 6142 THEN 'SIM' ELSE 'NÃO' END AS EH_CIELO
+FROM SC_ISO8583.TBL_MSG8583 M
+     LEFT JOIN SC_CAD.TBL_DMN D ON SUBSTR(M.BIT001, 3)::INTEGER = D.VL_CMP_DMN AND D.NM_CMP_DMN = 'BIT001'
+     LEFT JOIN SC_CAD.TBL_DMN D3 ON M.BIT003::INTEGER = D3.VL_CMP_DMN AND D3.NM_CMP_DMN = 'BIT003'
+WHERE BIT042 = '201801053900539' 
+  AND DT_MSG >= '2019-04-12 17:00:00' 
+  AND DT_MSG < '2019-04-12 19:00:00' 
+ORDER BY CD_MSG;
+
+
+--obtendo o valor do bit042 na tabela de filial de estabelecimento
+select nr_lgc_fet from sc_rdc.tbl_fet where cd_etb = 155 and cd_fet = 539;
+
+select * from sc_cad.tbl_dmn where nm_cmp_dmn = 'BIT003'
+
+ALTER TABLE sc_cad.tbl_dmn ALTER vl_cmp_dmn TYPE numeric(6,0);
+
+insert into sc_cad.tbl_dmn(cd_dmn, nm_cmp_dmn, vl_cmp_dmn, nm_vlr_dmn)
+values(nextval('sc_cad.sq_dmn'), 'BIT003', 102000, 'CONSULTA SALDO');
+
+insert into sc_cad.tbl_dmn(cd_dmn, nm_cmp_dmn, vl_cmp_dmn, nm_vlr_dmn)
+values(nextval('sc_cad.sq_dmn'), 'BIT003', 103800, 'CONSULTA PARCELAS');
+
+insert into sc_cad.tbl_dmn(cd_dmn, nm_cmp_dmn, vl_cmp_dmn, nm_vlr_dmn)
+values(nextval('sc_cad.sq_dmn'), 'BIT003', 102810, 'CONSULTA PARCELAS DEBITO');
+
+insert into sc_cad.tbl_dmn(cd_dmn, nm_cmp_dmn, vl_cmp_dmn, nm_vlr_dmn)
+values(nextval('sc_cad.sq_dmn'), 'BIT003', 103000, 'CONSULTA SALDO CREDITO');
+
+insert into sc_cad.tbl_dmn(cd_dmn, nm_cmp_dmn, vl_cmp_dmn, nm_vlr_dmn)
+values(nextval('sc_cad.sq_dmn'), 'BIT003', 8000, 'ABERTURA');
+
+
+SELECT extract(year from current_date)
